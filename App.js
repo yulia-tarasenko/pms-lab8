@@ -1,14 +1,35 @@
 import { StatusBar } from 'expo-status-bar';
 import React, {useState} from 'react';
-import { StyleSheet, Text, View, Switch, Dimensions  } from 'react-native';
+import { StyleSheet, Text, View, Switch, Dimensions, Image,  ScrollView} from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {LineChart, PieChart} from "react-native-chart-kit";
+import poster1 from './assets/Poster_01.jpg';
+import poster2 from './assets/Poster_02.jpg';
+import poster3 from './assets/Poster_03.jpg';
+import poster5 from './assets/Poster_05.jpg';
+import poster6 from './assets/Poster_01.jpg';
+import poster7 from './assets/Poster_07.jpg';
+import poster8 from './assets/Poster_08.jpg';
+import poster10 from './assets/Poster_10.jpg';
+import moviesList from './assets/MoviesList.json';
+
+const posters = {
+  poster1: poster1,
+  poster2: poster2,
+  poster3: poster3,
+  poster5: poster5,
+  poster6: poster6,
+  poster7: poster7,
+  poster8: poster8,
+  poster10: poster10,
+}
 
 function General() {
   return (
     <View style={styles.container}>
+      <Image source={posters['poster1']}/>
       <Text>Юлія Тарасенко</Text>
       <Text>Група ІО-82</Text>
       <Text>3К ІО-8222</Text>
@@ -111,6 +132,26 @@ function SecondPage() {
   );
 }
 
+function MoviesList() {
+  let renderedMovies = moviesList.map((movie, index) => {
+    return (
+    <View style={styles.film} key={index}>
+      {posters[`poster${index}`] ? <Image source={posters[`poster${index}`]} style={styles.imgFilm}/> : null}
+      <View style={styles.infoFilm}>
+        <Text>{movie.Title}</Text>
+        <Text>{movie.Year}</Text>
+        <Text>{movie.Type}</Text>
+      </View>
+    </View>
+    )
+  })
+  return (
+    <ScrollView>
+      {renderedMovies}
+    </ScrollView>
+  );
+}
+
 const Tab = createBottomTabNavigator();
 
 export default function App() {
@@ -127,6 +168,8 @@ export default function App() {
                 : 'ios-information-circle-outline';
             } else if (route.name === 'Second page') {
               iconName = 'ios-list';
+            } else if (route.name === 'Movies list') {
+              iconName = 'ios-videocam-outline';
             }
 
             return <Ionicons name={iconName} size={size} color={color} />;
@@ -138,6 +181,7 @@ export default function App() {
         }}>
         <Tab.Screen name="General" component={General} />
         <Tab.Screen name="Second page" component={SecondPage} />
+        <Tab.Screen name="Movies list" component={MoviesList} />
       </Tab.Navigator>
     </NavigationContainer>
   );
@@ -150,4 +194,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  film: {
+    borderBottomColor: 'grey',
+    borderStyle: 'solid',
+    borderWidth: 2,
+    padding: 30,
+    flexDirection: 'row'
+  },
+  imgFilm: {
+    width: null,
+    flex: 1,
+    height: 150
+  },
+  infoFilm: {
+    flex: 3,
+    padding: 10
+  }
 });
