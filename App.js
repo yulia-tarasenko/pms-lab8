@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import React, {useState} from 'react';
-import { StyleSheet, Text, View, Switch, Dimensions, Image,  ScrollView} from 'react-native';
+import { StyleSheet, Text, View, Switch, Dimensions, Image,  ScrollView,
+        TouchableOpacity, Button, TextInput } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -9,11 +10,12 @@ import poster1 from './assets/Poster_01.jpg';
 import poster2 from './assets/Poster_02.jpg';
 import poster3 from './assets/Poster_03.jpg';
 import poster5 from './assets/Poster_05.jpg';
-import poster6 from './assets/Poster_01.jpg';
+import poster6 from './assets/Poster_06.jpg';
 import poster7 from './assets/Poster_07.jpg';
 import poster8 from './assets/Poster_08.jpg';
 import poster10 from './assets/Poster_10.jpg';
 import moviesList from './assets/MoviesList.json';
+import { SearchBar } from 'react-native-elements';
 
 const posters = {
   poster1: poster1,
@@ -133,22 +135,125 @@ function SecondPage() {
 }
 
 function MoviesList() {
-  let renderedMovies = moviesList.map((movie, index) => {
+  function MovieInfo(movie, index) {
+    let renderedMovieInfo = [];
+    for (let [label, info] of Object.entries(movie)) {
+      if(label === 'Poster') {
+        renderedMovieInfo.unshift(<Image source={posters[`poster${index}`]} key="image" 
+        style={styles.detailedImg}/>);
+      } else {
+        renderedMovieInfo.push(
+          <View key={label} style={styles.labelContainer}>
+            <Text style={styles.labelDetailed}>{label}:</Text>
+            <Text style={styles.infoDetailed}>{info}</Text>
+          </View>
+        );
+      }
+    }
+    return renderedMovieInfo;
+  }
+
+  let [moviesState, setMovies] = useState([...moviesList]);
+  let [showDetailed, setShowDetailed] = useState(false);
+  let [indexDetailed, setIndexDetailed] = useState(0);
+  let [search, setSearch] = useState('');
+  let [showNewForm, setShowNewForm] = useState(false);
+  let [formTitle, setFormTitle] = useState('');
+  let [formType, setFormType] = useState('');
+  let [formYear, setFormYear] = useState('');
+
+  let detailMovieList = moviesState
+  .map((movie, index) => {
     return (
-    <View style={styles.film} key={index}>
-      {posters[`poster${index}`] ? <Image source={posters[`poster${index}`]} style={styles.imgFilm}/> : null}
-      <View style={styles.infoFilm}>
-        <Text>{movie.Title}</Text>
-        <Text>{movie.Year}</Text>
-        <Text>{movie.Type}</Text>
+      <View key={index} style={styles.detailedContainer}>
+        <View style={styles.buttonBackContainer}>
+          <Button title="Back" onPress={() => setShowDetailed(false)} style={styles.buttonBack}/>
+        </View>
+        {MovieInfo(movie, index)}
+        <View style={styles.buttonDeleteContainer}>
+          <Button color="red" title="Delete" onPress={() => {
+            let newMoviesState = [...moviesState];
+            newMoviesState.splice(index, 1);
+            setMovies(newMoviesState);
+            setShowDetailed(false);
+          }}/>
+        </View>
+      </View>
+    );
+  })
+
+  let renderedDetailed = detailMovieList[indexDetailed];
+
+  let renderedMovies = moviesState
+  .filter(movie => {
+    if (search === '') {return true}
+    return movie.Title.toLowerCase().includes(search.toLowerCase());
+  })
+  .map((movie, index) => {
+    return (
+    <TouchableOpacity key={index} onPress={() => {
+      setIndexDetailed(index);
+      setShowDetailed(true);
+    }}>
+      <View style={styles.film} key={index}>
+        {posters[`poster${index}`] ? <Image source={posters[`poster${index}`]} style={styles.imgFilm}/> : null}
+        <View style={styles.infoFilm}>
+          <Text>{movie.Title}</Text>
+          <Text>{movie.Year}</Text>
+          <Text>{movie.Type}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+    )
+  });
+
+  let finalRender = (
+    <ScrollView>
+    {showDetailed ? null : <SearchBar
+      placeholder=""
+      onChangeText={search => setSearch(search)}
+      value={search}
+      styles={styles.moviesContainer}
+    />}
+    {showDetailed ? null : <View style={styles.buttonPlusContainer}>
+        <Button title="+" onPress={() => setShowNewForm(true)}/>
+      </View>}
+    {showDetailed ? renderedDetailed : 
+    (renderedMovies.length ? renderedMovies : <Text>No items found</Text>)}
+  </ScrollView>
+  );
+  if (showNewForm) {
+    finalRender = (
+      <View style={styles.newFormContainer}>
+        <View style={styles.buttonBackContainer}>
+          <Button title="Back" onPress={() => setShowNewForm(false)} style={styles.buttonBack}/>
+        </View>
+      <Text>Title</Text>
+      <TextInput onChangeText={setFormTitle} value={formTitle} style={styles.input}/>
+      <Text>Type</Text>
+      <TextInput onChangeText={setFormType} value={formType} style={styles.input}/>
+      <Text>Year</Text>
+      <TextInput onChangeText={setFormYear} value={formYear} style={styles.input}
+      keyboardType="numeric"/>
+      <View style={styles.buttonAddContainer}>
+          <Button title="Add" onPress={() => {
+            if (!Number(formYear)) {return}
+            setMovies([...moviesState, 
+              {"Title": formTitle, "Type": formType, "Year": formYear}]);
+            setShowNewForm(false);
+            setFormTitle('');
+            setFormType('');
+            setFormYear('');
+          }}/>
       </View>
     </View>
-    )
-  })
+    );
+  }
+
   return (
-    <ScrollView>
-      {renderedMovies}
-    </ScrollView>
+    <View>
+      {finalRender}
+    </View>
   );
 }
 
@@ -209,5 +314,47 @@ const styles = StyleSheet.create({
   infoFilm: {
     flex: 3,
     padding: 10
+  },
+  detailedContainer : {
+    paddingTop: 30
+  },
+  detailedImg: {
+    alignSelf: 'center'
+  },
+  labelContainer: {
+    flexDirection: 'row', 
+    paddingBottom: 20
+  },
+  labelDetailed: {
+    color: 'grey',
+    marginRight: 3
+  },
+  infoDetailed: {
+    flex: 1
+  },
+  buttonBackContainer: {
+    alignSelf: 'flex-start'
+  },
+  buttonPlusContainer: {
+    width: "10%",
+    alignSelf: "flex-end"
+  },
+  buttonAddContainer: {
+    width: "20%",
+    alignSelf: "center"
+  },
+  moviesContainer: {
+    marginTop: 50
+  },
+  newFormContainer: {
+    paddingTop: 30
+  },
+  input: {
+    borderWidth: 1,
+    margin: 12,
+    height: 40
+  },
+  buttonDeleteContainer: {
+    alignSelf: 'center'
   }
 });
