@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import { StyleSheet, Text, View, Switch, Dimensions, Image,  ScrollView,
         TouchableOpacity, Button, TextInput } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -16,6 +16,7 @@ import poster8 from './assets/Poster_08.jpg';
 import poster10 from './assets/Poster_10.jpg';
 import moviesList from './assets/MoviesList.json';
 import { SearchBar } from 'react-native-elements';
+import * as ImagePicker from 'expo-image-picker';
 
 const posters = {
   poster1: poster1,
@@ -257,6 +258,118 @@ function MoviesList() {
   );
 }
 
+function ImageList(){
+  function getRandomInt(max) {
+    return Math.floor(Math.random() * max);
+  }
+
+  const [imageList, setImageList] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          alert('Sorry, we need camera roll permissions to make this work!');
+        }
+      }
+    })();
+  }, []);
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.cancelled) {
+      setImageList([...imageList, result.uri]);
+    }
+  };
+
+  let renderedImages = [];
+  let windowWidth = Dimensions.get('window').width;
+  let intermediateContainer = null;
+  let intermediateBigImg = null;
+  let i = 0;
+  if (imageList){
+    for (let image of imageList) {
+      let divider = 1;
+      let height = 75;
+      if (i === 0) {
+        divider = 3;
+      } else if (i === 1 | i === 2) {
+        divider = 2;
+      }
+      if (i === 1) {
+        intermediateContainer = (
+          <Image key={i+getRandomInt(1000)} source={{ uri: image }} style={{ width: (windowWidth  / 5) * divider,
+            height: height * divider}}/>
+        );
+        renderedImages.push(
+          <Image key={i+getRandomInt(1000)} source={{ uri: image }} style={{ width: (windowWidth  / 5) * divider,
+             height: height * divider}}/>);
+      } else if (i === 2) {
+        renderedImages[renderedImages.length-1] = (<View key={i+getRandomInt(1000)}>
+          {intermediateContainer}
+          <Image key={i+getRandomInt(1000)} source={{ uri: image }} style={{ width: (windowWidth  / 5) * divider,
+           height: height * divider}}/>
+        </View>);
+        intermediateContainer = null;
+      } else if (i === 3) {
+        intermediateBigImg = renderedImages[renderedImages.length-2];
+        renderedImages[renderedImages.length-2] = (
+          <View key={i+getRandomInt(1000)}>
+            {renderedImages[renderedImages.length-2]}
+            <View style={{flexDirection: 'row'}}>
+            <Image source={{ uri: image }} style={{ width: (windowWidth  / 5) * divider,
+              height: height * divider}}/>
+            </View>
+          </View>
+        );
+        intermediateContainer = [<Image key={i+getRandomInt(1000)} source={{ uri: image }} style={{ width: (windowWidth  / 5) * divider,
+          height: height * divider}}/>];
+      } else if (i === 4 | i === 5) {
+        renderedImages[renderedImages.length-2] = (
+          <View key={i+getRandomInt(1000)}>
+            {intermediateBigImg}
+            <View style={{flexDirection: 'row'}}>
+              {intermediateContainer}
+            </View>
+          </View>
+        );
+        intermediateContainer.push(<Image key={i+getRandomInt(1000)} source={{ uri: image }} style={{ width: (windowWidth  / 5) * divider,
+          height: height * divider}}/>);
+      } else {
+        renderedImages.push(
+          <Image key={i+getRandomInt(1000)} source={{ uri: image }} style={{ width: (windowWidth  / 5) * divider,
+             height: height * divider}}/>);
+      }
+      i++;
+      if (i > 5) {
+        i = 0;
+        intermediateBigImg = null;
+        intermediateContainer = null;
+      }
+    }
+  }
+
+  return (
+    <ScrollView>
+    <View style={styles.containerImages}>
+      <View style={styles.buttonPlusContainer}>
+        <Button title="+" onPress={pickImage} />
+      </View>
+          <View style={styles.containerImagesDirection}>{renderedImages}</View>
+    </View>
+    </ScrollView>
+  );
+}
+
 const Tab = createBottomTabNavigator();
 
 export default function App() {
@@ -275,6 +388,8 @@ export default function App() {
               iconName = 'ios-list';
             } else if (route.name === 'Movies list') {
               iconName = 'ios-videocam-outline';
+            } else if (route.name === 'Image list') {
+              iconName = 'ios-image-outline';
             }
 
             return <Ionicons name={iconName} size={size} color={color} />;
@@ -287,6 +402,7 @@ export default function App() {
         <Tab.Screen name="General" component={General} />
         <Tab.Screen name="Second page" component={SecondPage} />
         <Tab.Screen name="Movies list" component={MoviesList} />
+        <Tab.Screen name="Image list" component={ImageList} />
       </Tab.Navigator>
     </NavigationContainer>
   );
@@ -356,5 +472,12 @@ const styles = StyleSheet.create({
   },
   buttonDeleteContainer: {
     alignSelf: 'center'
+  },
+  containerImages: {
+    paddingTop: 30
+  },
+  containerImagesDirection: {
+    flexDirection: "row",
+    flexWrap: 'wrap'
   }
 });
