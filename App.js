@@ -136,12 +136,14 @@ function SecondPage() {
 }
 
 function MoviesList() {
-  function MovieInfo(movie, index) {
+  function MovieInfo(movie) {
     let renderedMovieInfo = [];
     for (let [label, info] of Object.entries(movie)) {
       if(label === 'Poster') {
-        renderedMovieInfo.unshift(<Image source={posters[`poster${index}`]} key="image" 
+        renderedMovieInfo.unshift(<Image source={{uri: movie.Poster}} key="image" 
         style={styles.detailedImg}/>);
+      } else if (label === 'Ratings'){
+        continue
       } else {
         renderedMovieInfo.push(
           <View key={label} style={styles.labelContainer}>
@@ -154,50 +156,77 @@ function MoviesList() {
     return renderedMovieInfo;
   }
 
-  let [moviesState, setMovies] = useState([...moviesList]);
+  let [moviesState, setMovies] = useState([]);
   let [showDetailed, setShowDetailed] = useState(false);
-  let [indexDetailed, setIndexDetailed] = useState(0);
+  let [filmDetailed, setFilmDetailed] = useState({});
   let [search, setSearch] = useState('');
   let [showNewForm, setShowNewForm] = useState(false);
   let [formTitle, setFormTitle] = useState('');
   let [formType, setFormType] = useState('');
   let [formYear, setFormYear] = useState('');
 
-  let detailMovieList = moviesState
-  .map((movie, index) => {
-    return (
-      <View key={index} style={styles.detailedContainer}>
+  // let detailMovieList = moviesState
+  // .map((movie, index) => {
+  //   return (
+  //     <View key={index} style={styles.detailedContainer}>
+  //       <View style={styles.buttonBackContainer}>
+  //         <Button title="Back" onPress={() => setShowDetailed(false)} style={styles.buttonBack}/>
+  //       </View>
+  //       {MovieInfo(movie, index)}
+  //       <View style={styles.buttonDeleteContainer}>
+  //         <Button color="red" title="Delete" onPress={() => {
+  //           let newMoviesState = [...moviesState];
+  //           newMoviesState.splice(index, 1);
+  //           setMovies(newMoviesState);
+  //           setShowDetailed(false);
+  //         }}/>
+  //       </View>
+  //     </View>
+  //   );
+  // });
+
+  let detailMovie =  (
+      <View style={styles.detailedContainer}>
         <View style={styles.buttonBackContainer}>
           <Button title="Back" onPress={() => setShowDetailed(false)} style={styles.buttonBack}/>
         </View>
-        {MovieInfo(movie, index)}
-        <View style={styles.buttonDeleteContainer}>
-          <Button color="red" title="Delete" onPress={() => {
-            let newMoviesState = [...moviesState];
-            newMoviesState.splice(index, 1);
-            setMovies(newMoviesState);
-            setShowDetailed(false);
-          }}/>
-        </View>
+        {MovieInfo(filmDetailed)}
       </View>
     );
-  })
 
-  let renderedDetailed = detailMovieList[indexDetailed];
+  // let renderedDetailed = detailMovieList[indexDetailed];
+
+  useEffect(() => {
+    if (search.length < 3) {return}
+    if (search.length === 0) {setMovies([]);}
+    fetch(`http://www.omdbapi.com/?apikey=7e9fe69e&s=${search}&page=1`)
+    .then(response => {
+      return response.json();
+    })
+    .then(films => {
+      setMovies(films.Search);
+    });
+  }, [search]);
 
   let renderedMovies = moviesState
-  .filter(movie => {
-    if (search === '') {return true}
-    return movie.Title.toLowerCase().includes(search.toLowerCase());
-  })
+  // .filter(movie => {
+  //   if (search === '') {return true}
+  //   return movie.Title.toLowerCase().includes(search.toLowerCase());
+  // })
   .map((movie, index) => {
     return (
     <TouchableOpacity key={index} onPress={() => {
-      setIndexDetailed(index);
-      setShowDetailed(true);
+      fetch(`http://www.omdbapi.com/?apikey=7e9fe69e&i=${movie.imdbID}`)
+      .then(response => {
+        return response.json();
+      })
+      .then(film => {
+        setFilmDetailed(film);
+        setShowDetailed(true);
+      });
     }}>
       <View style={styles.film} key={index}>
-        {posters[`poster${index}`] ? <Image source={posters[`poster${index}`]} style={styles.imgFilm}/> : null}
+        <Image source={{uri: movie.Poster}} style={styles.imgFilm}/>
         <View style={styles.infoFilm}>
           <Text>{movie.Title}</Text>
           <Text>{movie.Year}</Text>
@@ -219,7 +248,7 @@ function MoviesList() {
     {showDetailed ? null : <View style={styles.buttonPlusContainer}>
         <Button title="+" onPress={() => setShowNewForm(true)}/>
       </View>}
-    {showDetailed ? renderedDetailed : 
+    {showDetailed ? detailMovie : 
     (renderedMovies.length ? renderedMovies : <Text>No items found</Text>)}
   </ScrollView>
   );
@@ -265,31 +294,39 @@ function ImageList(){
 
   const [imageList, setImageList] = useState([]);
 
+  // useEffect(() => {
+  //   (async () => {
+  //     if (Platform.OS !== 'web') {
+  //       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  //       if (status !== 'granted') {
+  //         alert('Sorry, we need camera roll permissions to make this work!');
+  //       }
+  //     }
+  //   })();
+  // }, []);
+
   useEffect(() => {
-    (async () => {
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          alert('Sorry, we need camera roll permissions to make this work!');
-        }
-      }
-    })();
+    fetch(`https://pixabay.com/api/?key=19193969-87191e5db266905fe8936d565&q=small+animals&image_type=photo&per_page=18`)
+    .then(data => data.json())
+    .then(info => {
+      setImageList(info.hits.map(img => img.webformatURL));
+    });
   }, []);
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+  // const pickImage = async () => {
+  //   let result = await ImagePicker.launchImageLibraryAsync({
+  //     mediaTypes: ImagePicker.MediaTypeOptions.All,
+  //     allowsEditing: true,
+  //     aspect: [4, 3],
+  //     quality: 1,
+  //   });
 
-    console.log(result);
+  //   console.log(result);
 
-    if (!result.cancelled) {
-      setImageList([...imageList, result.uri]);
-    }
-  };
+  //   if (!result.cancelled) {
+  //     setImageList([...imageList, result.uri]);
+  //   }
+  // };
 
   let renderedImages = [];
   let windowWidth = Dimensions.get('window').width;
@@ -361,9 +398,6 @@ function ImageList(){
   return (
     <ScrollView>
     <View style={styles.containerImages}>
-      <View style={styles.buttonPlusContainer}>
-        <Button title="+" onPress={pickImage} />
-      </View>
           <View style={styles.containerImagesDirection}>{renderedImages}</View>
     </View>
     </ScrollView>
@@ -435,7 +469,10 @@ const styles = StyleSheet.create({
     paddingTop: 30
   },
   detailedImg: {
-    alignSelf: 'center'
+    alignSelf: 'center',
+    width: 400,
+    height: 400,
+    marginTop: 10
   },
   labelContainer: {
     flexDirection: 'row', 
