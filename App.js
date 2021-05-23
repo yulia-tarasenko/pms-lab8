@@ -17,6 +17,7 @@ import poster10 from './assets/Poster_10.jpg';
 import moviesList from './assets/MoviesList.json';
 import { SearchBar } from 'react-native-elements';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const posters = {
   poster1: poster1,
@@ -205,7 +206,24 @@ function MoviesList() {
     })
     .then(films => {
       setMovies(films.Search);
-    });
+      films.Search.forEach(film => {
+        AsyncStorage.setItem('@' + film.Title, JSON.stringify(film));
+      });
+    }).catch(error => {
+      AsyncStorage.getAllKeys().then(keys => {
+        let filmsArrayKeys = keys.filter(key => key.includes(search));
+        console.log(filmsArrayKeys);
+        let filmsArray = [];
+        for (let key of filmsArrayKeys) {
+
+          filmsArray.push(AsyncStorage.getItem(key).then(jsonValue => JSON.parse(jsonValue)))
+        }
+        Promise.all(filmsArray).then(values => {
+          setMovies(values);
+          console.log(values);
+        })
+      })
+    })
   }, [search]);
 
   let renderedMovies = moviesState
